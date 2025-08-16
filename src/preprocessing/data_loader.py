@@ -1,13 +1,11 @@
 import pandas as pd
 import os
-from src.preprocessing.data_cleaning import clean_health_data
-from src.preprocessing.feature_engineering import create_features
 
-def load_fitbit_data(file_path):
+def load_raw_data(data_path, activity_file='dailyActivity_merged.csv', sleep_file='sleepDay_merged.csv'):
+
     try:
-        df = pd.read_csv(file_path)
-        return df
-    except FileNotFoundError:
-        return None
-    except Exception as e:
-        return None
+        activity_df = pd.read_csv(os.path.join(data_path, activity_file))
+        sleep_df = pd.read_csv(os.path.join(data_path, sleep_file))
+        return activity_df, sleep_df
+    except FileNotFoundError as e:
+        return None, None
