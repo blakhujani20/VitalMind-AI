@@ -1,7 +1,7 @@
 import pandas as pd
 import os
-from data_cleaning import clean_health_data
-from feature_engineering import create_features
+from src.preprocessing.data_cleaning import clean_health_data
+from src.preprocessing.feature_engineering import create_features
 
 def load_fitbit_data(file_path):
     try:
