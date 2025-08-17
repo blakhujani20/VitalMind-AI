@@ -17,8 +17,10 @@ def generate_and_save_embeddings(df, save_path, model_name='all-MiniLM-L6-v2'):
  
     embedding_function = SentenceTransformerEmbeddings(model_name=model_name)
     vectorstore = FAISS.from_texts(sentences, embedding=embedding_function)
-
-    os.makedirs(save_path, exist_ok=True)
-    vectorstore.save_local(save_path)
+    if save_path:
+        print(f"Saving FAISS index to {save_path}...")
+        os.makedirs(save_path, exist_ok=True)
+        vectorstore.save_local(save_path)
+        print("✅ FAISS index saved successfully.")
     
     return vectorstore
