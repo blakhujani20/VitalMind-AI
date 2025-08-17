@@ -1,15 +1,12 @@
 import os
 import pandas as pd
-from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import SentenceTransformerEmbeddings 
+from langchain_ollama import OllamaLLM as Ollama
+from langchain_huggingface import HuggingFaceEmbeddings as SentenceTransformerEmbeddings
 
-load_dotenv()
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -47,7 +44,7 @@ class HealthAssistant:
         Helpful Answer:
         """
         prompt = ChatPromptTemplate.from_template(template)
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+        llm = Ollama(model="phi3:mini")
 
         chain = (
             {"context": self.retriever, "question": RunnablePassthrough()}
@@ -58,22 +55,29 @@ class HealthAssistant:
         return chain
 
     def answer_question(self, question):
-        """Answers a user's question using the RAG chain."""
         return self.rag_chain.invoke(question)
 
 
 if __name__ == '__main__':
-    PROCESSED_DATA_PATH = os.path.join(PROJECT_ROOT, 'data', 'processed_health_data.csv')
+    PROCESSED_DATA_PATH = os.path.join(PROJECT_ROOT, 'data', 'fitbit_data_processed.csv')
     FAISS_INDEX_FOLDER = os.path.join(PROJECT_ROOT, 'models', 'faiss_index')
 
     try:
         assistant = HealthAssistant(data_path=PROCESSED_DATA_PATH, index_folder_path=FAISS_INDEX_FOLDER)
 
+        print("\n--- Querying Assistant (with local Ollama!) ---")
+
         question1 = "Summarize my health trends for the last few days."
+        print(f"\n❓ Question: {question1}")
         answer1 = assistant.answer_question(question1)
+        print(f"💡 Answer: {answer1}")
+
+        print("\n" + "="*50 + "\n")
 
         question2 = "How was my sleep on the day I had the most steps?"
+        print(f"❓ Question: {question2}")
         answer2 = assistant.answer_question(question2)
+        print(f"💡 Answer: {answer2}")
 
     except Exception as e:
         print(f"\nAn error occurred during assistant initialization: {e}")

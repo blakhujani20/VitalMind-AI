@@ -8,53 +8,40 @@ import plotly.graph_objects as go
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from src.preprocessing.data_loader import load_raw_data
 from src.preprocessing.data_cleaning import clean_and_merge_data
 from src.preprocessing.feature_engineering import create_features
-
 from src.faiss_index.faiss_manager import load_vector_store, search_vector_store
 from src.models.anomaly_detector import detect_anomalies
 from src.models.time_series_model import LSTMModel, predict_future
 from src.llm.assistant import HealthAssistant
 
-st.set_page_config(
-    page_title="VitalMind AI Health Dashboard",
-    page_icon="🩺",
-    layout="wide"
-)
-
-
+st.set_page_config(page_title="VitalMind AI Health Dashboard", page_icon="🩺", layout="wide")
 @st.cache_data
 def run_preprocessing_pipeline(activity_df, sleep_df):
     cleaned_df = clean_and_merge_data(activity_df, sleep_df)
     final_df = create_features(cleaned_df)
     final_df['Date'] = pd.to_datetime(final_df['Date'])
     return final_df
-
 @st.cache_resource
 def load_prediction_model(model_path):
     model = LSTMModel(hidden_layer_size=50)
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.eval()
     return model
-
 @st.cache_resource
 def load_scaler(scaler_path):
     with open(scaler_path, 'rb') as f:
         scaler = pickle.load(f)
     return scaler
-
 @st.cache_resource
 def load_faiss_db(index_folder_path):
     return load_vector_store(index_folder_path)
-
 @st.cache_resource
 def load_assistant(data_path, index_folder_path):
     return HealthAssistant(data_path, index_folder_path)
 
 st.title("🩺 VitalMind AI: Personal Health Insight Platform")
-
 base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DATA_PATH = os.path.join(base_path, 'data')
 PROCESSED_DATA_PATH = os.path.join(base_path, 'data', 'fitbit_data_processed.csv')
@@ -62,8 +49,25 @@ MODEL_PATH = os.path.join(base_path, 'models', 'lstm_steps_model.pth')
 SCALER_PATH = os.path.join(base_path, 'models', 'scaler_steps.pkl')
 INDEX_FOLDER_PATH = os.path.join(base_path, 'models', 'faiss_index')
 
+st.sidebar.header("Upload Your Data")
+st.sidebar.info("Upload both daily activity and daily sleep CSV files from the fitbit app.")
+activity_file = st.sidebar.file_uploader("Upload your Daily Activity CSV", type="csv")
+sleep_file = st.sidebar.file_uploader("Upload your Daily Sleep CSV", type="csv")
 
-activity_df, sleep_df = load_raw_data(DATA_PATH)
+use_default_data = True
+if activity_file is not None and sleep_file is not None:
+    try:
+        activity_df = pd.read_csv(activity_file)
+        sleep_df = pd.read_csv(sleep_file)
+        st.sidebar.success("Files uploaded successfully! Displaying your data.")
+        use_default_data = False
+    except Exception as e:
+        st.sidebar.error(f"Error reading uploaded files: {e}")
+        activity_df, sleep_df = load_raw_data(DATA_PATH) # Fallback
+else:
+    st.sidebar.info("No files uploaded. Displaying default Kaggle dataset.")
+    activity_df, sleep_df = load_raw_data(DATA_PATH)
+
 
 if activity_df is not None and sleep_df is not None:
     final_df = run_preprocessing_pipeline(activity_df, sleep_df)
@@ -160,6 +164,5 @@ if activity_df is not None and sleep_df is not None:
             with st.chat_message("assistant"):
                 st.markdown(response)
             st.session_state.messages.append({"role": "assistant", "content": response})
-
 else:
     st.error("Could not load data. Please check the default data path in the /data folder.")
