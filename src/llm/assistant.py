@@ -1,19 +1,17 @@
 import os
-import pandas as pd
+from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from langchain_community.vectorstores import FAISS
-from langchain_ollama import OllamaLLM as Ollama
-from langchain_huggingface import HuggingFaceEmbeddings as SentenceTransformerEmbeddings
+from langchain_groq import ChatGroq 
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv()
 
 class HealthAssistant:
     def __init__(self, vector_store, df):
         if df is None or vector_store is None:
             raise ValueError("DataFrame and vector_store must be provided.")
-        
+
         self.df = df
         self.vector_store = vector_store
         self.retriever = self.vector_store.as_retriever()
@@ -31,7 +29,9 @@ class HealthAssistant:
         Helpful Answer:
         """
         prompt = ChatPromptTemplate.from_template(template)
-        llm = Ollama(model="phi3:mini")
+
+
+        llm = ChatGroq(temperature=0, model_name="llama3-8b-8192")
 
         chain = (
             {"context": self.retriever, "question": RunnablePassthrough()}
